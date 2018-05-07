@@ -1,242 +1,423 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<title>-PolarRegion-WebVR-</title>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<style>
-body {
-  width: 100%;
-  height: 100%;
-  background-color: #000;
-  color: #fff;
-  margin: 0px;
-  padding: 0;
-  overflow: hidden;
-}
-</style>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, shrink-to-fit=no">
+	<title>-PolarRegion-DesignByKimodw-</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+		}
+		html,body {
+			height: 100%;
+		}
+		body {
+			font-size: 14px;
+			font-family: "Arial","Microsoft YaHei","黑体",sans-serif;
+			overflow: hidden;
+		}
+		html,body,.main-page {
+			position: relative;
+			height: 100%;
+			overflow: hidden;
+		}
+		.vr-btn {
+			position: fixed;
+			right: 18px;
+			bottom: 18px;
+			padding: 8px 12px;
+			background-color: #00aadd;
+			text-align: center;
+			color: #fff;
+			font-size: 14px;
+			cursor: pointer;
+			z-index: 100;
+		}
+	</style>
 </head>
-
 <body>
-
+	<section class="main-page">
+		<div class="vr-btn">进入VR</div>
+	</section>
 </body>
-
+<script src="./vendor/webvr-polyfill.js"></script>
+<script src="./vendor/three.min.js"></script>
+<script src="./vendor/tween.min.js"></script>
 <script>
-/*
- * Debug parameters.
- */
+	//全局变量
+	var lightflag = true;
 
-// Forces availability of VR mode.
-//CARDBOARD_DEBUG = true;
-// Forces distortion in VR mode.
-//WEBVR_FORCE_DISTORTION = true;
-// Override the distortion background color.
-//WEBVR_BACKGROUND_COLOR = {x: 1, y: 0, z: 0, w: 1};
-// Change the tracking prediction mode.
-//WEBVR_PREDICTION_MODE = 2;
-// In prediction mode, change how far into the future to predict.
-//WEBVR_PREDICTION_TIME_MS = 100;
+	class WebVRApp {
+		constructor() {
+			// 初始化场景
+			this.scene = new THREE.Scene();
+			// 初始化相机
+			this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+			this.scene.add(this.camera);
+
+			// 初始化渲染器
+			this.renderer = new THREE.WebGLRenderer({ antialias: true });
+			this.renderer.setSize(window.innerWidth, window.innerHeight);
+			this.renderer.setClearColor(0x519EcB);
+			this.renderer.shadowMapEnabled = true;
+			this.renderer.setPixelRatio(window.devicePixelRatio);
+			document.querySelector('.main-page').appendChild(this.renderer.domElement);
+
+			this.clock = new THREE.Clock();
+			// VR初始化
+			this.initVR();
+			// 往场景添加3d物体
+			this.start();
+			this.bindEvent();
+			// 渲染动画
+			this.renderer.animate(this.update.bind(this));
+		}
+		bindEvent() {
+			// 窗口大小调整监听
+			window.addEventListener('resize', this.resize.bind(this), false);
+		}
+		start() {
+			const { scene, camera } = this;
+			this.state = {
+				_duration: 1500
+			};
+			this.animate = {};
+			scene.add(this.createBackground());
+			scene.add(this.createAurora());
+			scene.add(this.createStar());
+			scene.add(this.createMoon());
+			// 创建准心
+			camera.add(this.createCrosshair());
+			// 创建光线
+			scene.add(new THREE.AmbientLight(0xFFFFFF));
+			scene.add(this.createLight());
+			// 创建地面
+			//scene.add(this.createGround(1000, 1000));
+			this.gazer = new Gazer();
+
+			// 创建立方体
+			for (let i = 0; i < 80; i++) {
+				const cube = this.createCube(1.5, 1.5, 1.5);
+				cube.position.set(
+					80 * Math.random() - 40,
+				    50 * Math.random() - 10,
+				    80 * Math.random() - 40
+				);
+				cube.material.opacity = 0;
+				scene.add(cube);
+
+				var border = new THREE.BoxHelper(cube,0xf3f69d);
+    			scene.add(border);
+
+				this.gazer.on(cube, 'gazeEnter', () => {
+					this.state._wait = true;
+					this.animate.loader.start();
+				});
+				this.gazer.on(cube, 'gazeLeave', () => {
+					this.animate.loader.stop();
+					cube.scale.set(1, 1, 1);
+					cube.material.opacity = 0;
+				});
+				this.gazer.on(cube, 'gazeWait', () => {
+					this.animate.loader.stop();
+					cube.material.opacity = 0.5;
+				})
+			}
+		}
+		initVR() {
+			const { renderer } = this;
+			renderer.vr.enabled = true;
+			// 获取VRDisplay实例
+			navigator.getVRDisplays().then(display => {
+				// 将display实例传给renderer渲染器
+				renderer.vr.setDevice(display[0]);
+				const button = document.querySelector('.vr-btn');
+				VRButton.init(display[0], renderer, button, () => button.textContent = '退出VR', () => button.textContent = '进入VR');
+			}).catch(err => console.warn(err));
+		}
+		resize() {
+			const { camera, renderer } = this;
+			// 窗口调整重新调整渲染器
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+		}
+		createBackground(){
+			//create a sphere - we'll use the inner surface to project our image on to it
+			var geometry  = new THREE.SphereGeometry(50, 200, 200);
+			// create the material, using a texture of mars
+			var material  = new THREE.MeshBasicMaterial();
+			material.map   = THREE.ImageUtils.loadTexture('img/beiji.jpg');
+			material.side  = THREE.BackSide;
+
+			// create the mesh based on geometry and material
+			var mesh  = new THREE.Mesh(geometry, material);
+			var skybox = new THREE.Mesh(geometry, material);
+			return skybox;
+		}
+		createAurora(){
+			var lightgeometry  = new THREE.SphereGeometry(49, 200, 200);
+			//极光贴图
+			this.lightmaterial  = new THREE.MeshBasicMaterial();
+			this.lightmaterial.map   = THREE.ImageUtils.loadTexture('img/light.png');
+			this.lightmaterial.side  = THREE.BackSide;
+			this.lightmaterial.transparent = true;
+			this.lightmaterial.opacity = 0.6;
+
+			//将极光图层贴至场景中
+			var lightmesh  = new THREE.Mesh(lightgeometry, this.lightmaterial);
+			var lightskybox = new THREE.Mesh(lightgeometry, this.lightmaterial);
+			return lightskybox;
+
+		}
+
+		
+		auroraAnimition(){
+			const {lightmaterial} = this;
+		    if(lightmaterial.opacity >= 0.5){
+		      lightflag = false;
+		    }
+		    else if(lightmaterial.opacity <= 0.3){
+		      lightflag = true;
+		    }
+		    if(lightflag == true){
+		      lightmaterial.opacity += 0.002;
+		    }else{
+		      lightmaterial.opacity -= 0.002;
+		    }
+		}
+
+		createStar(){
+			const stargeometry  = new THREE.SphereGeometry(48, 200, 200);
+			//极光贴图
+			this.starmaterial  = new THREE.MeshBasicMaterial();
+			this.starmaterial.map   = THREE.ImageUtils.loadTexture('img/star.png');
+			this.starmaterial.side  = THREE.BackSide;
+			this.starmaterial.transparent = true;
+			this.starmaterial.opacity = 0.6;
+
+			//将极光图层贴至场景中
+			const starmesh  = new THREE.Mesh(stargeometry, this.starmaterial);
+			const starskybox = new THREE.Mesh(stargeometry, this.starmaterial);
+			return starskybox;
+
+		}
+
+		starAnimation(){
+			const {starmaterial} = this;
+			if(starmaterial.opacity >= 1){
+		      starmaterial.opacity -= 0.07;
+		    }
+		    else if(starmaterial.opacity <= 0.3){
+		      starmaterial.opacity += 0.07;
+		    }else if(Math.random() > 0.5){
+		      starmaterial.opacity += 0.07;
+		    }else{
+		      starmaterial.opacity -= 0.07;
+		    }
+		}
+
+		createMoon(){
+			// Create 3D objects.
+			const moongeometry = new THREE.SphereGeometry(2.5, 32, 32);
+			const moonmaterial = new THREE.MeshLambertMaterial();
+			this.moonMesh = new THREE.Mesh(moongeometry, moonmaterial);
+
+			// Position earth mesh
+			this.moonMesh.position.z = 30;
+			this.moonMesh.position.x = 10;
+			this.moonMesh.position.y = 15;
+
+			moonmaterial.map = THREE.ImageUtils.loadTexture('img/moon.jpg');
+			return this.moonMesh;
+		}
+
+		createCrosshair() {
+			// 创建准心
+			const geometry1 = new THREE.CircleGeometry(0.002, 16);
+			const material = new THREE.MeshBasicMaterial({
+				color: 0xffffff,
+				opacity: 0.5,
+				side: THREE.DoubleSide,
+				transparent: true,
+				needsUpdate: true
+			});
+			const pointer = new THREE.Mesh(geometry1, material);
+			pointer.name = 'pointer';
+			const geometry2 = new THREE.Geometry();
+			const loader = new THREE.Mesh(geometry2, material);
+			loader.rotation.set(0, Math.PI, Math.PI / 2);
+			loader.name = 'loader';
+			this.animate.loader = new TWEEN.Tween({ thetaLength: 0 })
+				.to({ thetaLength: 2 * Math.PI }, this.state._duration)
+				.onUpdate(function () {
+					loader.geometry = new THREE.RingGeometry(0.005, 0.007, 32, 8, 0, this.thetaLength);
+					loader.geometry.verticesNeedUpdate = true;
+				})
+				.onStop(function () {
+					this.thetaLength = 0;
+					loader.geometry = new THREE.Geometry();
+				});
+			const crosshair = new THREE.Group();
+			crosshair.add(pointer);
+			crosshair.add(loader);
+			crosshair.position.z = -0.5;
+			crosshair.matrixAutoUpdate = false;
+			crosshair.updateMatrix();
+			console.log(crosshair);
+			return crosshair;
+		}
+		createCube(width = 2, height = 2, depth = 2, color = 0xef6500) {
+			// 创建立方体
+
+			const geometry = new THREE.CubeGeometry(width, height, depth);
+			const material = new THREE.MeshLambertMaterial({
+				color: color,
+				needsUpdate: true,
+				opacity: 1,
+				transparent: true
+			});
+			const cube = new THREE.Mesh(geometry, material);
+			cube.castShadow = true;
+			return cube;
+		}
+		createLight() {
+			// 创建光线
+			const light = new THREE.DirectionalLight(0xffffff, 0.3);
+			light.position.set(50, 50, -50);
+			light.castShadow = true;
+			light.shadow.mapSize.width = 2048;
+			light.shadow.mapSize.height = 512;
+			return light;
+		}
+		update() {
+			const { scene, camera, renderer, clock, starmaterial} = this;
+			const delta = clock.getDelta() * 60;
+			//lighttime();
+			this.moonMesh.rotation.y += 0.002 * delta;
+
+			this.auroraAnimition();
+		    this.starAnimation();
+
+			// 启动渲染
+			TWEEN.update();
+			this.gazer.update(camera);
+			renderer.render(scene, camera);
+		}
+	}
+	// VR按钮控制
+	const VRButton = {
+		/** 
+		 * @param {VRDisplay} display VRDisplay实例
+		 * @param {THREE.WebGLRenderer} renderer 渲染器
+		 * @param {HTMLElement} button VR控制按钮
+		 * @param {Function} enterVR 点击进入VR模式时回调
+		 * @param {Function} exitVR 点击退出VR模式时回调
+		 **/
+		init(display, renderer, button, enterVR, exitVR) {
+
+			if (display) {
+				button.addEventListener('click', e => {
+					display.isPresenting ? display.exitPresent() : display.requestPresent([{ source: renderer.domElement }]);
+				});
+				window.addEventListener('vrdisplaypresentchange', e => {
+					display.isPresenting ? enterVR() : exitVR();
+				}, false);
+			} else {
+				button.remove();
+			}
+		}
+
+	}
+	// 凝视监听器
+	class Gazer {
+		constructor() {
+			// 初始化射线发射源
+			this.raycaster = new THREE.Raycaster();
+			this._center = new THREE.Vector2();
+			this.rayList = {}, this.targetList = [];
+			this._intersection = null, this._lastTarget = null;
+			this._gazeEnterTime = null, this.delayTime = 1500;
+		}
+		get delayTime() {
+			return this._delayTime;
+		}
+		set delayTime(val) {
+			this._delayTime = val;
+		}
+		get target() {
+			return this._lastTarget;
+		}
+		/** 
+		 * @param {THREE.Mesh} target 监听的3d网格
+		 * @param {String} eventType 事件类型 
+		 *      'gazeEnter': '射线击中物体触发一次', 
+		 *      'gazeTrigger': '射线击中物体触发', 
+		 *      'gazeLeave': '射线离开物体触发'
+		 *      'gazeWait': '射线击中物体超过一定时间触发'
+		 * @param {Function} callback 事件回调
+		 **/
+		on(target, eventType, callback) {
+			const noop = () => { };
+			if (!this.rayList[target.id]) this.rayList[target.id] = {
+				target,
+				gazeEnter: noop,
+				gazeTrigger: noop,
+				gazeLeave: noop,
+				gazeWait: noop
+			};
+			this.rayList[target.id][eventType] = callback;
+			this.targetList = Object.keys(this.rayList).map(key => this.rayList[key].target);
+		}
+		off(target, eventType) {
+			if (!eventType) {
+				delete this.rayList[target.id];
+				this.targetList = Object.keys(this.rayList).map(key => this.rayList[key].target);
+			} else {
+				const noop = () => { };
+				this.rayList[target.id][eventType] = noop;
+			}
+		}
+		clear() {
+			this.rayList = {}, this.targetList = [];
+		}
+		update(camera) {
+			if (this.targetList.length <= 0) return;
+			//创建凝视器
+			this.raycaster.setFromCamera(this._center, camera);
+			const intersects = this.raycaster.intersectObjects(this.targetList);
+			if (intersects.length > 0) { //凝视触发
+				const intersection = intersects[0], currentTarget = intersection.object;
+				const targetChanged = this._lastTarget && this._lastTarget.id !== currentTarget.id; // 射线是否从A物体切换至B物体
+
+				if (targetChanged) this.rayList[this._lastTarget.id].gazeLeave(this._intersection); // 射线从A物体离开，触发A物体的gazeLeave事件
+
+				if (!this._lastTarget || targetChanged) {
+					this._gazeEnterTime = Date.now();
+					this.rayList[currentTarget.id].gazeEnter(intersection); // 射线进入B物体，触发B物体的gazeEnter事件
+				}
+
+				this.rayList[currentTarget.id].gazeTrigger(intersection); // 射线在B物体上，触发B物体的gazeTrigger事件
+				this._delayListener(currentTarget.id);
+				this.intersection = intersection;
+				this._lastTarget = currentTarget;
+			} else {
+				// 如果是离开物体，则触发gazeLeave
+				if (this._lastTarget) this.rayList[this._lastTarget.id].gazeLeave(this._intersection);
+				this.intersection = null;
+				this._lastTarget = null;
+			}
+		}
+		_delayListener(targetid) {
+			const {_gazeEnterTime,delayTime,rayList} = this;
+			if (_gazeEnterTime && Date.now() - _gazeEnterTime > delayTime) {
+				rayList[targetid].gazeWait();
+				this._gazeEnterTime = null;
+			}
+
+		}
+	}
+	new WebVRApp();
 </script>
-
-<!--
-  three.js 3d library
-  -->
-<script src="bower_components/threejs/build/three.js"></script>
-
-<!--
-  VRControls.js acquires positional information from connected VR devices and applies the transformations to a three.js camera object.
-   -->
-<script src="bower_components/threejs/examples/js/controls/VRControls.js"></script>
-
-<!--
-  VREffect.js handles stereo camera setup and rendering.
-  -->
-<script src="bower_components/threejs/examples/js/effects/VREffect.js"></script>
-
-<!--
-  A polyfill for WebVR using the Device{Motion,Orientation}Event API.
-  -->
-<script src="bower_components/webvr-polyfill/build/webvr-polyfill.js"></script>
-
-<!--
-  Helps enter and exit VR mode, provides best practices while in VR.
-  -->
-<script src="build/webvr-manager.js"></script>
-
-
-<script>
-//Setup three.js WebGL renderer
-var renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(window.devicePixelRatio);
-
-// Append the canvas element created by the renderer to document body element.
-document.body.appendChild(renderer.domElement);
-
-// Create a three.js scene.
-var scene = new THREE.Scene();
-
-// Create a three.js camera.
-var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-
-// Apply VR headset positional data to camera.
-var controls = new THREE.VRControls(camera);
-
-// Apply VR stereo rendering to renderer.
-var effect = new THREE.VREffect(renderer);
-effect.setSize(window.innerWidth, window.innerHeight);
-
-//create a sphere - we'll use the inner surface to project our image on to it
-var geometry  = new THREE.SphereGeometry(50, 200, 200)
-var lightgeometry  = new THREE.SphereGeometry(49, 200, 200)
-var stargeometry  = new THREE.SphereGeometry(48, 200, 200)
-
-// create the material, using a texture of mars
-var material  = new THREE.MeshBasicMaterial();
-material.map   = THREE.ImageUtils.loadTexture('img/beiji.jpg');
-material.side  = THREE.BackSide;
-
-//极光贴图
-var lightmaterial  = new THREE.MeshBasicMaterial();
-lightmaterial.map   = THREE.ImageUtils.loadTexture('img/light.png');
-lightmaterial.side  = THREE.BackSide;
-lightmaterial.transparent = true;
-lightmaterial.opacity = 0.6;
-
-//星空贴图
-var starmaterial  = new THREE.MeshBasicMaterial();
-starmaterial.map   = THREE.ImageUtils.loadTexture('img/star.png');
-starmaterial.side  = THREE.BackSide;
-starmaterial.transparent = true;
-starmaterial.opacity = 0.8;
-
-// create the mesh based on geometry and material
-var mesh  = new THREE.Mesh(geometry, material);
-var skybox = new THREE.Mesh(geometry, material);
-scene.add(skybox);  
-
-//将极光图层贴至场景中
-var lightmesh  = new THREE.Mesh(lightgeometry, lightmaterial);
-var lightskybox = new THREE.Mesh(lightgeometry, lightmaterial);
-scene.add(lightskybox);
-
-//将星空图层贴至场景中
-var starmesh  = new THREE.Mesh(stargeometry, starmaterial);
-var starskybox = new THREE.Mesh(stargeometry, starmaterial);
-scene.add(starskybox);
-
-// Create a VR manager helper to enter and exit VR mode.
-var manager = new WebVRManager(renderer, effect, {hideButton: false});
-
-// Create 3D objects.
-var geometry = new THREE.SphereGeometry(2.5, 32, 32);
-var material = new THREE.MeshLambertMaterial();
-var earthMesh = new THREE.Mesh(geometry, material);
-
-// Position earth mesh
-earthMesh.position.z = 30;
-earthMesh.position.x = 10;
-earthMesh.position.y = 15;
-
-
-// Add earth mesh to your three.js scene
-scene.add(earthMesh);
-
-material.map = THREE.ImageUtils.loadTexture('img/moon.jpg')
-
-// Add earthMesh mesh to your three.js scene
-scene.add(earthMesh);
-
-var light = new THREE.SpotLight(0xe2e2c5, 1, 100, Math.PI / 6, 25);
-light.position.set(20, 5, 5);
-light.target = earthMesh;
-light.castShadow = true;
-
-scene.add(light);
-
-// Request animation frame loop function
-function animate(timestamp) {
-  // Apply rotation to earthMesh mesh
-  earthMesh.rotation.y += 0.01;
-
-  // Update VR headset position and apply to camera.
-  controls.update();
-
-  // Render the scene through the manager.
-  manager.render(scene, camera, timestamp);
-
-  requestAnimationFrame(animate);
-}
-
-// Kick off animation loop
-animate();
-
-var lightflag = true;
-function lighttime(timestamp){
-    if(lightmaterial.opacity >= 0.6){
-      lightflag = false;
-    }
-    else if(lightmaterial.opacity <= 0.3){
-      lightflag = true;
-    }
-    if(lightflag == true){
-      lightmaterial.opacity += 0.005;
-    }else{
-      lightmaterial.opacity -= 0.005;
-    }
-    controls.update();
-
-    // Render the scene through the manager.
-    manager.render(scene, camera, timestamp);
-
-    requestAnimationFrame(lighttime);
-}
-
-lighttime();
-
-function startime(timestamp){
-    if(starmaterial.opacity >= 1){
-      starmaterial.opacity -= 0.07;
-    }
-    else if(starmaterial.opacity <= 0.3){
-      starmaterial.opacity += 0.07;
-    }else if(Math.random() > 0.5){
-      starmaterial.opacity += 0.07;
-    }else{
-      starmaterial.opacity -= 0.07;
-    }
-    controls.update();
-
-    // Render the scene through the manager.
-    manager.render(scene, camera, timestamp);
-
-    requestAnimationFrame(startime);
-}
-
-startime();
-
-// Reset the position sensor when 'z' pressed.
-function onKey(event) {
-  if (event.keyCode == 90) { // z
-    controls.resetSensor();
-  }
-}
-
-window.addEventListener('keydown', onKey, true);
-
-// Handle window resizes
-function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-
-  effect.setSize(window.innerWidth, window.innerHeight);
-}
-
-window.addEventListener('resize', onWindowResize, false);
-
-</script>
-
 </html>
