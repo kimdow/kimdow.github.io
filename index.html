@@ -38,7 +38,7 @@
 </head>
 <body>
 	<section class="main-page">
-		<div class="vr-btn">进入VR</div>
+		<div class="vr-btn">Enter VR</div>
 	</section>
 </body>
 <script src="./vendor/webvr-polyfill.js"></script>
@@ -55,7 +55,7 @@
 			// 初始化相机
 			this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 			this.scene.add(this.camera);
-
+			//this.scene.fog= new THREE.FogExp2(0xffffff,0.015);//后一个参数为浓度
 			// 初始化渲染器
 			this.renderer = new THREE.WebGLRenderer({ antialias: true });
 			this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -87,27 +87,36 @@
 			scene.add(this.createAurora());
 			scene.add(this.createStar());
 			scene.add(this.createMoon());
+
 			// 创建准心
 			camera.add(this.createCrosshair());
 			// 创建光线
-			scene.add(new THREE.AmbientLight(0xFFFFFF));
+			scene.add(new THREE.AmbientLight(0xFFFFFF, 0.3));
 			scene.add(this.createLight());
-			// 创建地面
-			//scene.add(this.createGround(1000, 1000));
+
+			//var bluePoint = new THREE.PointLight(0x0033ff, 1, 5); 
+			//bluePoint.position.set(10, 5, 10); 
+			//scene.add(bluePoint); 
+			//scene.add(new THREE.PointLightHelper(bluePoint, 1));
+
 			this.gazer = new Gazer();
 
 			// 创建立方体
-			for (let i = 0; i < 80; i++) {
-				const cube = this.createCube(1.5, 1.5, 1.5);
-				cube.position.set(
-					80 * Math.random() - 40,
-				    50 * Math.random() - 10,
-				    80 * Math.random() - 40
-				);
-				cube.material.opacity = 0;
+			for (let i = 0; i < 30; i++) {
+				//this.pointlight = this.createPointlight();
+				const cube = this.createCube();
+				const x = 80 * Math.random() - 40;
+				const y = 50 * Math.random() - 10;
+				const z = 80 * Math.random() - 40;
+				//this.pointlight.position.set(x, y, z);
+				cube.position.set(x, y, z);
+				cube.material.opacity = 0.5;
+				//scene.add(this.pointlight);
 				scene.add(cube);
 
-				var border = new THREE.BoxHelper(cube,0xf3f69d);
+				//var lightborder = new THREE.PointLightHelper(this.pointlight);
+    			//scene.add(lightborder);
+    			var border = new THREE.BoxHelper(cube);
     			scene.add(border);
 
 				this.gazer.on(cube, 'gazeEnter', () => {
@@ -116,15 +125,19 @@
 				});
 				this.gazer.on(cube, 'gazeLeave', () => {
 					this.animate.loader.stop();
-					cube.scale.set(1, 1, 1);
-					cube.material.opacity = 0;
+					//cube.scale.set(1, 1, 1);
+					//cube.material.opacity = 0.4;
+
 				});
 				this.gazer.on(cube, 'gazeWait', () => {
 					this.animate.loader.stop();
-					cube.material.opacity = 0.5;
-				})
+					//this.pointlight.intensity = 0.1;
+					cube.material.opacity = 0.6;
+					cube.scale.set(0.5,0.5,0.5);
+				});
 			}
 		}
+
 		initVR() {
 			const { renderer } = this;
 			renderer.vr.enabled = true;
@@ -268,12 +281,21 @@
 			console.log(crosshair);
 			return crosshair;
 		}
-		createCube(width = 2, height = 2, depth = 2, color = 0xef6500) {
+		createPointlight() {
+			const pointlight = new THREE.PointLight();
+			pointlight.color = 0xffffff;
+			pointlight.distance = 1;
+        	pointlight.intensity = 0.1;
+        	return pointlight;
+
+		}
+
+		createCube() {
 			// 创建立方体
 
-			const geometry = new THREE.CubeGeometry(width, height, depth);
+			const geometry = new THREE.CubeGeometry(1.5, 1.5, 1.5);
 			const material = new THREE.MeshLambertMaterial({
-				color: color,
+				color: 0xec6b1b,
 				needsUpdate: true,
 				opacity: 1,
 				transparent: true
@@ -281,16 +303,19 @@
 			const cube = new THREE.Mesh(geometry, material);
 			cube.castShadow = true;
 			return cube;
+
 		}
+
 		createLight() {
 			// 创建光线
-			const light = new THREE.DirectionalLight(0xffffff, 0.3);
-			light.position.set(50, 50, -50);
-			light.castShadow = true;
-			light.shadow.mapSize.width = 2048;
-			light.shadow.mapSize.height = 512;
+			const light = new THREE.DirectionalLight(0xffffff, 0.8);
+			light.position.set(-15, -20, -20);
+			//light.castShadow = true;
+			//light.shadow.mapSize.width = 2048;
+			//light.shadow.mapSize.height = 512;
 			return light;
 		}
+
 		update() {
 			const { scene, camera, renderer, clock, starmaterial} = this;
 			const delta = clock.getDelta() * 60;
@@ -299,6 +324,8 @@
 
 			this.auroraAnimition();
 		    this.starAnimation();
+
+		    //curcube.position.y --;
 
 			// 启动渲染
 			TWEEN.update();
