@@ -44,6 +44,8 @@
 <script src="./vendor/webvr-polyfill.js"></script>
 <script src="./vendor/three.min.js"></script>
 <script src="./vendor/tween.min.js"></script>
+
+
 <script>
 	//全局变量
 	var lightflag = true;
@@ -72,6 +74,7 @@
 			this.bindEvent();
 			// 渲染动画
 			this.renderer.animate(this.update.bind(this));
+			this.renderer.animate(this.sphereRotate.bind(this));
 		}
 		bindEvent() {
 			// 窗口大小调整监听
@@ -92,36 +95,36 @@
 			camera.add(this.createCrosshair());
 			// 创建光线
 			scene.add(new THREE.AmbientLight(0xFFFFFF, 0.3));
-			scene.add(this.createLight());
-
-			//var bluePoint = new THREE.PointLight(0x0033ff, 1, 5); 
-			//bluePoint.position.set(10, 5, 10); 
-			//scene.add(bluePoint); 
-			//scene.add(new THREE.PointLightHelper(bluePoint, 1));
+			scene.add(this.createLight(-40, -40, -20));
+			scene.add(this.createLight(40, 40, 20));
 
 			this.gazer = new Gazer();
+			var cursphere;
 
 			// 创建立方体
-			for (let i = 0; i < 30; i++) {
-				//this.pointlight = this.createPointlight();
-				const cube = this.createCube();
-				const sphere = this.createSphere();
-				const x = 80 * Math.random() - 40;
-				const y = 50 * Math.random() - 10;
-				const z = 80 * Math.random() - 40;
-				//this.pointlight.position.set(x, y, z);
-				//cube.position.set(x, y, z);
-				//cube.material.opacity = 0.5;
-				sphere.position.set(x, y, z);
-				sphere.material.opacity = 0.5;
+			for (let i = 0; i < 40; i++) {
 				
-				//scene.add(cube);
+				const sphere = this.createSphere();
+				while(true){
+					var x = 80 * Math.random() - 40;
+					var y = 50 * Math.random() - 10;
+					var z = 80 * Math.random() - 40;
+
+					if((x < 5 && x > -5) || (y < 5 && y > -5) || (z < 5 && z > -5)){
+						continue;
+					}else{
+						break;
+					}
+				}
+				
+				sphere.position.set(x, y, z);
+				sphere.material.opacity = 0.7;
+				sphere.name = "s" + i ; 
+
 				scene.add(sphere);
 
-				
-    			//var border = new THREE.BoxHelper(cube);
-    			var border = new THREE.BoxHelper(sphere);
-    			scene.add(border);
+    			//var border = new THREE.BoxHelper(sphere);
+    			//scene.add(border);
 
 				this.gazer.on(sphere, 'gazeEnter', () => {
 					this.state._wait = true;
@@ -129,20 +132,32 @@
 				});
 				this.gazer.on(sphere, 'gazeLeave', () => {
 					this.animate.loader.stop();
-					//cube.scale.set(1, 1, 1);
-					//cube.material.opacity = 0.4;
+					
 
 				});
 				this.gazer.on(sphere, 'gazeWait', () => {
 					this.animate.loader.stop();
-					//this.pointlight.intensity = 0.1;
+					
 					sphere.material.opacity = 0.6;
 					sphere.scale.set(0.5,0.5,0.5);
-					for(var i = 0; sphere.position.y <= 30; i++){
-						sphere.position.y += 0.000001;
-					}
+
+					//this.cursphere = new THREE.Mesh(sphere);
+					this.sphereRotate(sphere);
 				});
 			}
+		}
+
+		sphereRotate(mysphere){
+			const delta = this.clock.getDelta() * 60;
+			if (true){
+				mysphere.rotation.y += 0.002 * delta;
+				this.renderer.render(this.scene, this.camera);
+				console.log("y");
+			}else{
+				console.log("n");
+				return;
+			}
+
 		}
 
 		initVR() {
@@ -165,7 +180,7 @@
 		}
 		createBackground(){
 			//create a sphere - we'll use the inner surface to project our image on to it
-			var geometry  = new THREE.SphereGeometry(50, 200, 200);
+			var geometry  = new THREE.SphereGeometry(80, 50, 50);
 			// create the material, using a texture of mars
 			var material  = new THREE.MeshBasicMaterial();
 			material.map   = THREE.ImageUtils.loadTexture('img/beiji.jpg');
@@ -177,7 +192,7 @@
 			return skybox;
 		}
 		createAurora(){
-			var lightgeometry  = new THREE.SphereGeometry(49, 200, 200);
+			var lightgeometry  = new THREE.SphereGeometry(79, 50, 50);
 			//极光贴图
 			this.lightmaterial  = new THREE.MeshBasicMaterial();
 			this.lightmaterial.map   = THREE.ImageUtils.loadTexture('img/light.png');
@@ -209,7 +224,7 @@
 		}
 
 		createStar(){
-			const stargeometry  = new THREE.SphereGeometry(48, 200, 200);
+			const stargeometry  = new THREE.SphereGeometry(78, 50, 50);
 			//极光贴图
 			this.starmaterial  = new THREE.MeshBasicMaterial();
 			this.starmaterial.map   = THREE.ImageUtils.loadTexture('img/star.png');
@@ -240,14 +255,14 @@
 
 		createMoon(){
 			// Create 3D objects.
-			const moongeometry = new THREE.SphereGeometry(2.5, 32, 32);
+			const moongeometry = new THREE.SphereGeometry(6.5, 32, 32);
 			const moonmaterial = new THREE.MeshLambertMaterial();
 			this.moonMesh = new THREE.Mesh(moongeometry, moonmaterial);
 
 			// Position earth mesh
-			this.moonMesh.position.z = 30;
-			this.moonMesh.position.x = 10;
-			this.moonMesh.position.y = 15;
+			this.moonMesh.position.z = 60;
+			this.moonMesh.position.x = 20;
+			this.moonMesh.position.y = 30;
 
 			moonmaterial.map = THREE.ImageUtils.loadTexture('img/moon.jpg');
 			return this.moonMesh;
@@ -288,14 +303,6 @@
 			console.log(crosshair);
 			return crosshair;
 		}
-		createPointlight() {
-			const pointlight = new THREE.PointLight();
-			pointlight.color = 0xffffff;
-			pointlight.distance = 1;
-        	pointlight.intensity = 0.1;
-        	return pointlight;
-
-		}
 
 		createCube() {
 			// 创建立方体
@@ -315,18 +322,19 @@
 
 		createSphere(){
 			// Create 3D objects.
-			const spheregeometry = new THREE.OctahedronGeometry(1.5);
+			const spheregeometry = new THREE.OctahedronGeometry(2);
 			var r = 224;
 			var g = parseInt(Math.random() * 255);
 			var b = 31;
-			var hex = "0x" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-			console.log(hex);
+			var hex = (r << 16) | (g << 8) | b;
+		
 			const spherematerial = new THREE.MeshLambertMaterial({
 				color: hex,
 				needsUpdate: true,
 				opacity: 1,
 				transparent: true
 			});
+
 			this.sphereMesh = new THREE.Mesh(spheregeometry, spherematerial);
 
 			const sphere = new THREE.Mesh(spheregeometry, spherematerial);
@@ -334,11 +342,11 @@
 			return sphere;
 		}
 
-		createLight() {
+		createLight(x,y,z) {
 			// 创建光线
 			const light = new THREE.DirectionalLight(0xffffff, 0.8);
-			light.position.set(-15, -20, -20);
-			//light.castShadow = true;
+			light.position.set(x, y, z);
+			light.castShadow = true;
 			//light.shadow.mapSize.width = 2048;
 			//light.shadow.mapSize.height = 512;
 			return light;
