@@ -105,35 +105,42 @@
 			for (let i = 0; i < 30; i++) {
 				//this.pointlight = this.createPointlight();
 				const cube = this.createCube();
+				const sphere = this.createSphere();
 				const x = 80 * Math.random() - 40;
 				const y = 50 * Math.random() - 10;
 				const z = 80 * Math.random() - 40;
 				//this.pointlight.position.set(x, y, z);
-				cube.position.set(x, y, z);
-				cube.material.opacity = 0.5;
-				//scene.add(this.pointlight);
-				scene.add(cube);
+				//cube.position.set(x, y, z);
+				//cube.material.opacity = 0.5;
+				sphere.position.set(x, y, z);
+				sphere.material.opacity = 0.5;
+				
+				//scene.add(cube);
+				scene.add(sphere);
 
-				//var lightborder = new THREE.PointLightHelper(this.pointlight);
-    			//scene.add(lightborder);
-    			var border = new THREE.BoxHelper(cube);
+				
+    			//var border = new THREE.BoxHelper(cube);
+    			var border = new THREE.BoxHelper(sphere);
     			scene.add(border);
 
-				this.gazer.on(cube, 'gazeEnter', () => {
+				this.gazer.on(sphere, 'gazeEnter', () => {
 					this.state._wait = true;
 					this.animate.loader.start();
 				});
-				this.gazer.on(cube, 'gazeLeave', () => {
+				this.gazer.on(sphere, 'gazeLeave', () => {
 					this.animate.loader.stop();
 					//cube.scale.set(1, 1, 1);
 					//cube.material.opacity = 0.4;
 
 				});
-				this.gazer.on(cube, 'gazeWait', () => {
+				this.gazer.on(sphere, 'gazeWait', () => {
 					this.animate.loader.stop();
 					//this.pointlight.intensity = 0.1;
-					cube.material.opacity = 0.6;
-					cube.scale.set(0.5,0.5,0.5);
+					sphere.material.opacity = 0.6;
+					sphere.scale.set(0.5,0.5,0.5);
+					for(var i = 0; sphere.position.y <= 30; i++){
+						sphere.position.y += 0.000001;
+					}
 				});
 			}
 		}
@@ -304,6 +311,27 @@
 			cube.castShadow = true;
 			return cube;
 
+		}
+
+		createSphere(){
+			// Create 3D objects.
+			const spheregeometry = new THREE.OctahedronGeometry(1.5);
+			var r = 224;
+			var g = parseInt(Math.random() * 255);
+			var b = 31;
+			var hex = "0x" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+			console.log(hex);
+			const spherematerial = new THREE.MeshLambertMaterial({
+				color: hex,
+				needsUpdate: true,
+				opacity: 1,
+				transparent: true
+			});
+			this.sphereMesh = new THREE.Mesh(spheregeometry, spherematerial);
+
+			const sphere = new THREE.Mesh(spheregeometry, spherematerial);
+			sphere.castShadow = true;
+			return sphere;
 		}
 
 		createLight() {
