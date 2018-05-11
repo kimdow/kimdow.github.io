@@ -45,6 +45,13 @@
 <script src="./vendor/three.min.js"></script>
 <script src="./vendor/tween.min.js"></script>
 
+<script>
+	var audio = document.createElement('audio');
+	audio.src = 'audio/bgm.mp3';
+	audio.autoplay = true;
+	document.body.appendChild(audio);
+</script>
+
 
 <script>
 	//全局变量
@@ -57,7 +64,7 @@
 			// 初始化相机
 			this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 			this.scene.add(this.camera);
-			//this.scene.fog= new THREE.FogExp2(0xffffff,0.015);//后一个参数为浓度
+			//this.scene.fog= new THREE.Fog(0xffffff,40,80);
 			// 初始化渲染器
 			this.renderer = new THREE.WebGLRenderer({ antialias: true });
 			this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -81,25 +88,6 @@
 			window.addEventListener('resize', this.resize.bind(this), false);
 		}
 
-
-		sphereRotate(mysphere){
-			//const sphere = mysphere[0];
-			const delta = this.clock.getDelta() * 60;
-			//if (mysphere[1] == true){
-			if(typeof mysphere == 'undefined')	{
-				mysphere.rotation.y += 0.002 * delta;
-				this.renderer.render(this.scene, this.camera);
-				console.log("y");
-			}else{
-				console.log("n");
-			}
-			//}else{
-				//console.log("n");
-				//return;
-			//}
-
-		}
-
 		start() {
 			const { scene, camera } = this;
 			this.state = {
@@ -118,6 +106,7 @@
 			camera.add(this.createCrosshair());
 			// 创建光线
 			scene.add(new THREE.AmbientLight(0xFFFFFF, 0.3));
+			//创建阴影光照
 			scene.add(this.createLight(-40, -40, -20, 0.5));
 			scene.add(this.createLight(40, 40, 20, 0.4));
 			scene.add(this.createLight(40, -40, -20, 0.2));
@@ -174,28 +163,9 @@
 						this.spherearray[i][0].material.wireframe = false;
 						this.spherearray[i][1] = true;
 						console.log("wait");
-						//this.sphereRotate(this.spherearray[i][0]);
 					}
 				});
 			}
-			/*for (let i = 0; i < 30; i++){
-
-
-				this.gazer.on(skybox, 'gazeEnter', () => {
-					this.state._wait = true;
-					this.animate.loader.start();
-				});
-
-				
-				this.gazer.on(skybox, 'gazeLeave', () => {
-					this.animate.loader.stop();
-					
-
-				});
-				this.gazer.on(skybox, 'gazeWait', () => {
-					this.animate.loader.stop();
-				});
-			}*/
 
 		}
 
@@ -401,7 +371,7 @@
 			const { scene, camera, renderer, clock, starmaterial} = this;
 			const delta = clock.getDelta() * 60;
 			//lighttime();
-			this.moonMesh.rotation.y += 0.002 * delta;
+			this.moonMesh.rotation.y += 0.0015 * delta;
 
 			this.auroraAnimition();
 		    this.starAnimation();
