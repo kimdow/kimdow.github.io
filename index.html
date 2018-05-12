@@ -64,7 +64,7 @@
 			// 初始化相机
 			this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 			this.scene.add(this.camera);
-			//this.scene.fog= new THREE.Fog(0xffffff,40,80);
+			this.scene.fog = new THREE.FogExp2(0xffffff,0.06);
 			// 初始化渲染器
 			this.renderer = new THREE.WebGLRenderer({ antialias: true });
 			this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -81,7 +81,6 @@
 			this.bindEvent();
 			// 渲染动画
 			this.renderer.animate(this.update.bind(this));
-			//this.renderer.animate(this.sphereRotate.bind(this));
 		}
 		bindEvent() {
 			// 窗口大小调整监听
@@ -94,12 +93,10 @@
 				_duration: 1500
 			};
 			this.animate = {};
-			//const skybox = this.createStar();
-			
+			//添加实体
 			scene.add(this.createBackground());
 			scene.add(this.createAurora());
 			scene.add(this.createStar());
-			//scene.add(skybox);
 			scene.add(this.createMoon());
 
 			// 创建准心
@@ -118,7 +115,7 @@
 			 	this.spherearray[k] = new Array();    
 			}
 
-			// 创建立方体
+			// 创建立方体、绑定监听器
 			for (let i = 0; i < 30; i++) {
 				
 				const sphere = this.createSphere();
@@ -127,6 +124,7 @@
 					var y = 16 * Math.random() - 8;
 					var z = 80 * Math.random() - 40;
 
+					//防止离相机过近
 					if((x < 5 && x > -5) || (y < 5 && y > -5) || (z < 5 && z > -5)){
 						continue;
 					}else{
@@ -136,7 +134,6 @@
 				
 				sphere.position.set(x, y, z);
 				sphere.material.opacity = 0.3;
-				sphere.name = "s" + i ; 
 				this.spherearray[i][0] = sphere;
 				this.spherearray[i][1] = false;
 
@@ -162,7 +159,10 @@
 						this.spherearray[i][0].scale.set(0.8,0.8,0.8);
 						this.spherearray[i][0].material.wireframe = false;
 						this.spherearray[i][1] = true;
-						console.log("wait");
+						if(this.scene.fog.density >= 0){
+							this.scene.fog.density -= 0.004;
+						}
+						//console.log("wait");
 					}
 				});
 			}
@@ -283,7 +283,7 @@
 			// 创建准心
 			const geometry1 = new THREE.CircleGeometry(0.002, 16);
 			const material = new THREE.MeshBasicMaterial({
-				color: 0xffffff,
+				color: 0x0000ff,
 				opacity: 0.5,
 				side: THREE.DoubleSide,
 				transparent: true,
@@ -346,8 +346,8 @@
 				transparent: true,
 				side: THREE.DoubleSide,
 				wireframe : true,
-				specular: 0xfffff
-				//depthTest:false
+				specular: 0xfffff,
+				fog: true
 			});
 
 			this.sphereMesh = new THREE.Mesh(spheregeometry, spherematerial);
@@ -370,15 +370,31 @@
 		update() {
 			const { scene, camera, renderer, clock, starmaterial} = this;
 			const delta = clock.getDelta() * 60;
-			//lighttime();
+			
+			//月球旋转
 			this.moonMesh.rotation.y += 0.0015 * delta;
-
+			//极光、星空闪烁动画
 			this.auroraAnimition();
 		    this.starAnimation();
 
+		    //八面体激活前后事件
 		    for(let i = 0; i < 30; i++){
 		    	if(this.spherearray[i][1] == true){
 		    		this.spherearray[i][0].rotation.y += 0.005 * delta;	   
+		    	}
+		    	if(this.scene.fog.density > 0){
+			    	if(this.spherearray[i][1] == false){
+			    		if(this.spherearray[i][0].material.opacity >= 1){
+					      this.spherearray[i][0].material.opacity -= 0.07;
+					    }
+					    else if(this.spherearray[i][0].opacity <= 0.5){
+					      this.spherearray[i][0].material.opacity += 0.07;
+					    }else if(Math.random() > 0.5){
+					      this.spherearray[i][0].material.opacity += 0.07;
+					    }else{
+					      this.spherearray[i][0].material.opacity -= 0.07;
+					    }
+			    	}
 		    	}
 		    }
 
