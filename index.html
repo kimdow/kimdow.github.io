@@ -56,6 +56,8 @@
 <script>
 	//全局变量
 	var lightflag = true;
+	var count = 0;
+	const totalnum = 15;
 
 	class WebVRApp {
 		constructor() {
@@ -64,7 +66,7 @@
 			// 初始化相机
 			this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 			this.scene.add(this.camera);
-			this.scene.fog = new THREE.FogExp2(0xffffff,0.06);
+			this.scene.fog = new THREE.FogExp2(0xffffff,0.04);
 			// 初始化渲染器
 			this.renderer = new THREE.WebGLRenderer({ antialias: true });
 			this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -116,7 +118,7 @@
 			}
 
 			// 创建立方体、绑定监听器
-			for (let i = 0; i < 30; i++) {
+			for (let i = 0; i < totalnum; i++) {
 				
 				const sphere = this.createSphere();
 				while(true){
@@ -133,7 +135,7 @@
 				}
 				
 				sphere.position.set(x, y, z);
-				sphere.material.opacity = 0.3;
+				sphere.material.opacity = 0.6;
 				this.spherearray[i][0] = sphere;
 				this.spherearray[i][1] = false;
 
@@ -159,10 +161,12 @@
 						this.spherearray[i][0].scale.set(0.8,0.8,0.8);
 						this.spherearray[i][0].material.wireframe = false;
 						this.spherearray[i][1] = true;
-						if(this.scene.fog.density >= 0){
-							this.scene.fog.density -= 0.004;
+						count++;
+						if(this.scene.fog.density > 0){
+							this.scene.fog.density -= (0.04/totalnum);
+							console.log(this.scene.fog.density);
 						}
-						//console.log("wait");
+						
 					}
 				});
 			}
@@ -378,23 +382,32 @@
 		    this.starAnimation();
 
 		    //八面体激活前后事件
-		    for(let i = 0; i < 30; i++){
+		    for(let i = 0; i < totalnum; i++){
 		    	if(this.spherearray[i][1] == true){
 		    		this.spherearray[i][0].rotation.y += 0.005 * delta;	   
 		    	}
-		    	if(this.scene.fog.density > 0){
-			    	if(this.spherearray[i][1] == false){
-			    		if(this.spherearray[i][0].material.opacity >= 1){
-					      this.spherearray[i][0].material.opacity -= 0.07;
-					    }
-					    else if(this.spherearray[i][0].opacity <= 0.5){
-					      this.spherearray[i][0].material.opacity += 0.07;
-					    }else if(Math.random() > 0.5){
-					      this.spherearray[i][0].material.opacity += 0.07;
-					    }else{
-					      this.spherearray[i][0].material.opacity -= 0.07;
-					    }
-			    	}
+		    	
+			    /*if(this.spherearray[i][1] == false){
+			    	if(this.spherearray[i][0].material.opacity >= 1){
+					    this.spherearray[i][0].material.opacity -= 0.05;
+					}else if(this.spherearray[i][0].opacity <= 0.8){
+					    this.spherearray[i][0].material.opacity += 0.05;
+					}
+					var ran = Math.random();
+					if(this.spherearray[i][0].material.opacity < 1 && this.spherearray[i][0].opacity > 0.8 && ran > 0.5){
+					    this.spherearray[i][0].material.opacity += 0.05;
+					}
+					if(this.spherearray[i][0].material.opacity < 1 && this.spherearray[i][0].opacity > 0.8 && ran < 0.5){
+					    this.spherearray[i][0].material.opacity -= 0.05;
+					}
+			    }*/
+		   }
+
+		    if(count == totalnum){
+		    	for(let i = 0; i < totalnum; i++){
+		    		this.spherearray[i][0].position.y += 0.05 * delta;
+		    		if(this.spherearray[i][0].position.y >= 60)
+		    			break;
 		    	}
 		    }
 
