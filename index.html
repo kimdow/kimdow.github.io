@@ -46,6 +46,13 @@
 <script src="./vendor/tween.min.js"></script>
 
 <script>
+	var audio = document.createElement('audio');
+	audio.src = 'audio/bgm.mp3';
+	//audio.autoplay = true;
+	document.body.appendChild(audio);
+</script>
+
+<script>
 	//全局变量
 	var lightflag = true;
 	var count = 0;
@@ -87,11 +94,11 @@
 			this.animate = {};
 			//添加实体
 			scene.add(this.createBackground());
-			//scene.add(this.createAurora());
 			scene.add(this.createStar());
-			var title = this.createMenu()
-			scene.add(title);
-			//scene.add(this.createMoon());
+			scene.add(this.createMenu());
+
+			var enter = this.createEnter()
+			scene.add(enter);
 
 			// 创建准心
 			camera.add(this.createCrosshair());
@@ -103,10 +110,11 @@
 			scene.add(this.createLight(40, -40, -20, 0.2));
 			scene.add(this.createLight(40, 40, -20, 0.3));
 
+			
 			this.gazer = new Gazer();
 
 			window.addEventListener('click', e => this.state._clicked = true);
-			this.gazer.on(title, 'gazeTrigger', () => {
+			this.gazer.on(enter, 'gazeTrigger', () => {
 				if(this.state._clicked){
 					this.state._clicked = false;
 					window.location.href="menu.html";
@@ -160,6 +168,20 @@
 			menuplane.position.z = -60;
 
 			return menuplane;
+		}
+
+		createEnter(){
+			const entergeometry = new THREE.PlaneGeometry(27, 1.5);
+			this.entermaterial = new THREE.MeshBasicMaterial();
+			this.entermaterial.map = THREE.ImageUtils.loadTexture('img/enter.png');
+			this.entermaterial.transparent = true;
+			//this.entermaterial.opacity = 0.8;
+
+			const enterplane = new THREE.Mesh(entergeometry, this.entermaterial);
+			enterplane.position.y = -15;
+			enterplane.position.z = -59;
+
+			return enterplane;
 		}
 
 		createStar(){
