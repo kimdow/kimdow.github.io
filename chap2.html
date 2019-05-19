@@ -198,7 +198,7 @@
 			var geometry  = new THREE.SphereGeometry(80, 50, 50);
 			// create the material, using a texture of mars
 			var material  = new THREE.MeshBasicMaterial();
-			material.map   = THREE.ImageUtils.loadTexture('img/chap2bg.jpg');
+			material.map   = THREE.ImageUtils.loadTexture('img/chap2bg1.jpg');
 			material.side  = THREE.BackSide;
 
 			// create the mesh based on geometry and material
@@ -240,13 +240,14 @@
 		createOcta(){
 			// Create 3D objects.
 			const octageometry = new THREE.OctahedronGeometry(10, 0);
-			const octamaterial = new THREE.MeshBasicMaterial({
+			this.octamaterial = new THREE.MeshBasicMaterial({
 				transparent: true,
 				opacity: 0.3,
 				side: THREE.DoubleSide
 			});
+			this.octamaterial.map = THREE.ImageUtils.loadTexture('img/glass.png');
 
-			const octaMesh = new THREE.Mesh(octageometry, octamaterial);
+			const octaMesh = new THREE.Mesh(octageometry, this.octamaterial);
 
 
 			//moonmaterial.map = THREE.ImageUtils.loadTexture('img/moon.jpg');
@@ -293,9 +294,9 @@
 		createSphere(){
 			// Create 3D objects.
 			const spheregeometry = new THREE.OctahedronGeometry(2,0);
-			var r = 250;
-			var g = 240;
-			var b = parseInt(Math.random() * 180);
+			var r = 0;
+			var g = 171;
+			var b = parseInt(Math.random() * 140);
 			var hex = (r << 16) | (g << 8) | b;
 		
 			const spherematerial = new THREE.MeshPhongMaterial({

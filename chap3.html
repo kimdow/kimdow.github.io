@@ -45,17 +45,13 @@
 <script src="./vendor/three.min.js"></script>
 <script src="./vendor/tween.min.js"></script>
 
-<script>
-	var audio = document.createElement('audio');
-	audio.src = 'audio/bgm.mp3';
-	//audio.autoplay = true;
-	document.body.appendChild(audio);
-</script>
 
 <script>
 	//全局变量
 	var lightflag = true;
 	var count = 0;
+	const totalnum = 30;
+	const rightnum = 6;
 
 	class WebVRApp {
 		constructor() {
@@ -94,10 +90,14 @@
 			this.animate = {};
 			//添加实体
 			scene.add(this.createBackground());
-			//scene.add(this.createAurora());
 			scene.add(this.createStar());
-			scene.add(this.createMenu());
-			//scene.add(this.createMoon());
+
+			/*this.octaGeo = this.createOcta()
+			scene.add(this.octaGeo);
+			this.lineOcta = this.createOcta();
+			this.lineOcta.scale.set(0.9,0.9,0.9);
+			this.lineOcta.material.wireframe = true;
+			scene.add(this.lineOcta);*/
 
 			// 创建准心
 			camera.add(this.createCrosshair());
@@ -110,42 +110,37 @@
 			scene.add(this.createLight(40, 40, -20, 0.3));
 
 			this.gazer = new Gazer();
-
 			this.spherearray = new Array();  
-			for(let k=0; k < 7; k++){        
+			for(let k=0; k < 30; k++){        
 			 	this.spherearray[k] = new Array();    
 			}
 
 			// 创建立方体、绑定监听器
-			for (let i = 0; i < 7; i++) {
+			for (let i = 0; i < totalnum; i++) {
 				
 				const sphere = this.createSphere();
-				var x,y,z;
-				if(i == 0){
-					x = -2; y = 16.5; z = -60;
-				}else if(i == 1){
-					x = -16.5; y = 0; z = -60;
-				}else if(i == 2){
-					x = -5; y = 3.5; z = -60;
-				}else if(i == 3){
-					x = 20.5; y = 3.5; z = -60;
-				}else if(i == 4){
-					x = 11; y = 0; z = -60;
-				}else if(i == 5){
-					x = -2; y = -16.5; z = -60;
-				}else if(i == 6){
-					x = 20; y = -16.5; z = -60;
+				const cube = this.createCube();
+				while(true){
+					var x = 80 * Math.random() - 40;
+					var y = 60 * Math.random() - 30;
+					var z = 80 * Math.random() - 40;
+
+					//防止离相机过近
+					if((x < 8 && x > -8) || (y < 8 && y > -8) || (z < 8 && z > -8)){
+						continue;
+					}else{
+						break;
+					}
 				}
 				
 				sphere.position.set(x, y, z);
-				sphere.material.opacity = 0.3;
+				cube.position.set(x, y-2.5, z);
+				sphere.material.opacity = 0.6;
 				this.spherearray[i][0] = sphere;
 				this.spherearray[i][1] = false;
 
 				scene.add(this.spherearray[i][0]);
-
-    			//var border = new THREE.BoxHelper(sphere);
-    			//scene.add(border);
+				scene.add(cube);
 
 				this.gazer.on(this.spherearray[i][0], 'gazeEnter', () => {
 					if(this.spherearray[i][1] == false){
@@ -158,30 +153,27 @@
 
 				});
 				this.gazer.on(this.spherearray[i][0], 'gazeWait', () => {
-					if(this.spherearray[i][1] == false){
+					if(this.spherearray[i][1] == false && i != rightnum){
 						this.animate.loader.stop();
-						this.spherearray[i][0].material.opacity = 0.6;
-						this.spherearray[i][0].scale.set(0.8,0.8,0.8);
-						this.spherearray[i][0].material.wireframe = false;
+						this.spherearray[i][0].material.opacity = 0;
+						//this.spherearray[i][0].scale.set(0.8,0.8,0.8);
+						//this.spherearray[i][0].material.wireframe = false;
 						this.spherearray[i][1] = true;
-						if(i == 0){
-							window.location.href="chap1.html";
-						}else if(i == 1){
-							window.location.href="chap2.html";
-						}else if(i == 2){
-							window.location.href="chap3.html";
-						}else if(i == 3){
-							
-						}else if(i == 4){
-							
-						}else if(i == 5){
-							
-						}else if(i == 6){
-							
+					}else if(this.spherearray[i][1] == false && i == rightnum){
+						this.animate.loader.stop();
+						this.spherearray[i][0].scale.set(1.2,1.2,1.2);
+						for(let j = 0; j < totalnum; j++){
+							if(j != i){
+								this.spherearray[j][0].material.opacity = 0;
+								this.spherearray[j][1] = true;
+							}
 						}
+						this.spherearray[i][1] = true;
+						this.octaGeo.material.opacity = 0;
 					}
 				});
 			}
+
 		}
 
 		
@@ -209,7 +201,7 @@
 			var geometry  = new THREE.SphereGeometry(80, 50, 50);
 			// create the material, using a texture of mars
 			var material  = new THREE.MeshBasicMaterial();
-			material.map   = THREE.ImageUtils.loadTexture('img/menubg1.jpg');
+			material.map   = THREE.ImageUtils.loadTexture('img/chap3bg.jpg');
 			material.side  = THREE.BackSide;
 
 			// create the mesh based on geometry and material
@@ -217,55 +209,17 @@
 			var skybox = new THREE.Mesh(geometry, material);
 			return skybox;
 		}
-		
-		createMenu(){
-			const menugeometry = new THREE.PlaneGeometry(80, 45);
-			this.menumaterial = new THREE.MeshBasicMaterial();
-			this.menumaterial.map = THREE.ImageUtils.loadTexture('img/menu.png');
-			this.menumaterial.transparent = true;
-
-			const menuplane = new THREE.Mesh(menugeometry, this.menumaterial);
-			menuplane.position.z = -60;
-
-			return menuplane;
-		}
-
-		createSphere(){
-			// Create 3D objects.
-			const spheregeometry = new THREE.OctahedronGeometry(2,0);
-			var r = 121;
-			var g = 255
-			var b = parseInt(Math.random() * 255);
-			var hex = (r << 16) | (g << 8) | b;
-		
-			const spherematerial = new THREE.MeshPhongMaterial({
-				color: hex,
-				needsUpdate: true,
-				opacity: 1,
-				transparent: true,
-				side: THREE.DoubleSide,
-				wireframe : true,
-				specular: 0xfffff,
-				fog: true
-			});
-
-			this.sphereMesh = new THREE.Mesh(spheregeometry, spherematerial);
-
-			const sphere = new THREE.Mesh(spheregeometry, spherematerial);
-			sphere.castShadow = true;
-			return sphere;
-		}
 
 		createStar(){
 			const stargeometry  = new THREE.SphereGeometry(78, 50, 50);
-			//贴图
+			//极光贴图
 			this.starmaterial  = new THREE.MeshBasicMaterial();
 			this.starmaterial.map   = THREE.ImageUtils.loadTexture('img/star.png');
 			this.starmaterial.side  = THREE.BackSide;
 			this.starmaterial.transparent = true;
 			this.starmaterial.opacity = 0.6;
 
-			//将图层贴至场景中
+			//将极光图层贴至场景中
 			const starmesh  = new THREE.Mesh(stargeometry, this.starmaterial);
 			const starskybox = new THREE.Mesh(stargeometry, this.starmaterial);
 			return starskybox;
@@ -284,6 +238,22 @@
 		    }else{
 		      starmaterial.opacity -= 0.07;
 		    }
+		}
+
+		createOcta(){
+			// Create 3D objects.
+			const octageometry = new THREE.OctahedronGeometry(10, 0);
+			const octamaterial = new THREE.MeshBasicMaterial({
+				transparent: true,
+				opacity: 0.3,
+				side: THREE.DoubleSide
+			});
+
+			const octaMesh = new THREE.Mesh(octageometry, octamaterial);
+
+
+			//moonmaterial.map = THREE.ImageUtils.loadTexture('img/moon.jpg');
+			return octaMesh;
 		}
 
 		createCrosshair() {
@@ -323,6 +293,43 @@
 		}
 
 
+		createSphere(){
+			// Create 3D objects.
+			const spheregeometry = new THREE.OctahedronGeometry(0.8,0);
+			var r = 239;
+			var g = parseInt(Math.random() * 170);
+			var b = 37
+			var hex = (r << 16) | (g << 8) | b;
+		
+			const spherematerial = new THREE.MeshPhongMaterial({
+				color: hex,
+				needsUpdate: true,
+				opacity: 0.6,
+				transparent: true,
+				side: THREE.DoubleSide,
+			});
+
+			this.sphereMesh = new THREE.Mesh(spheregeometry, spherematerial);
+
+			const sphere = new THREE.Mesh(spheregeometry, spherematerial);
+			sphere.castShadow = true;
+			return sphere;
+		}
+
+		createCube() {
+			// 创建立方体
+			const geometry = new THREE.CubeGeometry(1.5, 3, 1.5);
+			const material = new THREE.MeshLambertMaterial({
+				color: 0xffffff,
+				opacity: 0.6,
+				transparent: true
+			});
+			const cube = new THREE.Mesh(geometry, material);
+			cube.castShadow = true;
+			return cube;
+
+		}
+
 		createLight(x,y,z,i) {
 			// 创建光线
 			const light = new THREE.DirectionalLight(0xffffff, i);
@@ -336,15 +343,18 @@
 		update() {
 			const { scene, camera, renderer, clock, starmaterial} = this;
 			const delta = clock.getDelta() * 60;
-		    
+			
+			//月球旋转
+			//this.octaMesh.rotation.y += 0.0015 * delta;
+			//极光、星空闪烁动画
 		    this.starAnimation();
 
-		    for(let i = 0; i < 7; i++){
-		    	if(this.spherearray[i][1] == true){
+		    //八面体激活前后事件
+		    for(let i = 0; i < totalnum; i++){
+		    	if(this.spherearray[i][1] == false){
 		    		this.spherearray[i][0].rotation.y += 0.005 * delta;	   
 		    	}
 		   }
-
 
 			// 启动渲染
 			TWEEN.update();
