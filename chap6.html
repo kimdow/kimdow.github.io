@@ -50,7 +50,7 @@
 	//全局变量
 	var lightflag = true;
 	var count = 0;
-	const totalnum = 15;
+	const totalnum = 7;
 	const rightnum = 6;
 
 	class WebVRApp {
@@ -91,13 +91,10 @@
 			//添加实体
 			scene.add(this.createBackground());
 			scene.add(this.createStar());
-
-			this.octaGeo = this.createOcta()
-			scene.add(this.octaGeo);
-			this.lineOcta = this.createOcta();
-			this.lineOcta.scale.set(0.9,0.9,0.9);
-			this.lineOcta.material.wireframe = true;
-			scene.add(this.lineOcta);
+			scene.add(this.createStarlight());
+			this.moon = this.createMoon();
+			this.moon.material.opacity = 0;
+			scene.add(this.moon);
 
 			// 创建准心
 			camera.add(this.createCrosshair());
@@ -118,7 +115,7 @@
 			// 创建立方体、绑定监听器
 			for (let i = 0; i < totalnum; i++) {
 				
-				const sphere = this.createSphere();
+				const sphere = this.createStarlight();
 				while(true){
 					var x = 80 * Math.random() - 40;
 					var y = 16 * Math.random() - 8;
@@ -133,7 +130,9 @@
 				}
 				
 				sphere.position.set(x, y, z);
-				sphere.material.opacity = 0.6;
+				//var angle = Math.atan(Math.abs(z)/Math.abs(x));
+				//sphere.rotation.y += angle;
+				//sphere.material.opacity = 0.6;
 				this.spherearray[i][0] = sphere;
 				this.spherearray[i][1] = false;
 
@@ -150,23 +149,25 @@
 
 				});
 				this.gazer.on(this.spherearray[i][0], 'gazeWait', () => {
-					if(this.spherearray[i][1] == false && i != rightnum){
+					if(this.spherearray[i][1] == false){
 						this.animate.loader.stop();
-						this.spherearray[i][0].material.opacity = 0;
-						//this.spherearray[i][0].scale.set(0.8,0.8,0.8);
-						//this.spherearray[i][0].material.wireframe = false;
+						var linegeometry = new THREE.Geometry();
+						linegeometry.vertices.push(
+						new THREE.Vector3(10, 10, 10),
+						new THREE.Vector3(this.spherearray[i][0].position.x,
+						    this.spherearray[i][0].position.y,
+						    this.spherearray[i][0].position.z)
+						);
+						var linematerial = new THREE.LineBasicMaterial({
+						     color: 0xffffff
+						});
+						var line = new THREE.Line( linegeometry, linematerial );
+						scene.add(line);
 						this.spherearray[i][1] = true;
-					}else if(this.spherearray[i][1] == false && i == rightnum){
-						this.animate.loader.stop();
-						this.spherearray[i][0].scale.set(1.2,1.2,1.2);
-						for(let j = 0; j < totalnum; j++){
-							if(j != i){
-								this.spherearray[j][0].material.opacity = 0;
-								this.spherearray[j][1] = true;
-							}
-						}
-						this.spherearray[i][1] = true;
-						this.octaGeo.material.opacity = 0;
+						count++;
+					}
+					if(count == totalnum){
+						this.moon.material.opacity = 1;
 					}
 				});
 			}
@@ -198,7 +199,7 @@
 			var geometry  = new THREE.SphereGeometry(80, 50, 50);
 			// create the material, using a texture of mars
 			var material  = new THREE.MeshBasicMaterial();
-			material.map   = THREE.ImageUtils.loadTexture('img/chap2bg.jpg');
+			material.map   = THREE.ImageUtils.loadTexture('img/chap6bg.jpg');
 			material.side  = THREE.BackSide;
 
 			// create the mesh based on geometry and material
@@ -237,22 +238,6 @@
 		    }
 		}
 
-		createOcta(){
-			// Create 3D objects.
-			const octageometry = new THREE.OctahedronGeometry(10, 0);
-			const octamaterial = new THREE.MeshBasicMaterial({
-				transparent: true,
-				opacity: 0.3,
-				side: THREE.DoubleSide
-			});
-
-			const octaMesh = new THREE.Mesh(octageometry, octamaterial);
-
-
-			//moonmaterial.map = THREE.ImageUtils.loadTexture('img/moon.jpg');
-			return octaMesh;
-		}
-
 		createCrosshair() {
 			// 创建准心
 			const geometry1 = new THREE.CircleGeometry(0.002, 16);
@@ -287,6 +272,32 @@
 			crosshair.updateMatrix();
 			//console.log(crosshair);
 			return crosshair;
+		}
+		createStarlight(){
+			const slgeometry = new THREE.PlaneGeometry(5, 5);
+			this.slmaterial = new THREE.MeshBasicMaterial();
+			this.slmaterial.map = THREE.ImageUtils.loadTexture('img/starlight.png');
+			this.slmaterial.transparent = true;
+			this.slmaterial.side = THREE.DoubleSide;
+
+			const slplane = new THREE.Mesh(slgeometry, this.slmaterial);
+
+			return slplane;
+		}
+
+		createMoon(){
+			// Create 3D objects.
+			const moongeometry = new THREE.SphereGeometry(2.5, 32, 32);
+			const moonmaterial = new THREE.MeshLambertMaterial({transparent: true});
+			this.moonMesh = new THREE.Mesh(moongeometry, moonmaterial);
+
+			// Position earth mesh
+			this.moonMesh.position.z = 10;
+			this.moonMesh.position.x = 10;
+			this.moonMesh.position.y = 10;
+
+			moonmaterial.map = THREE.ImageUtils.loadTexture('img/moon.jpg');
+			return this.moonMesh;
 		}
 
 
@@ -330,16 +341,26 @@
 			const delta = clock.getDelta() * 60;
 			
 			//月球旋转
-			//this.octaMesh.rotation.y += 0.0015 * delta;
+			if(this.moon.material.opacity == 1)
+				this.moon.rotation.y += 0.0015 * delta;
 			//极光、星空闪烁动画
 		    this.starAnimation();
 
-		    //八面体激活前后事件
 		    for(let i = 0; i < totalnum; i++){
 		    	if(this.spherearray[i][1] == false){
-		    		this.spherearray[i][0].rotation.y += 0.005 * delta;	   
+		    		if(this.spherearray[i][0].material.opacity >= 0.7){
+				      lightflag = false;
+				    }
+				    else if(this.spherearray[i][0].material.opacity <= 0.3){
+				      lightflag = true;
+				    }
+				    if(lightflag == true){
+				      this.spherearray[i][0].material.opacity += 0.005;
+				    }else{
+				      this.spherearray[i][0].material.opacity -= 0.005;
+				    }  
 		    	}
-		   }
+		    }
 
 			// 启动渲染
 			TWEEN.update();

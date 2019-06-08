@@ -50,8 +50,7 @@
 	//全局变量
 	var lightflag = true;
 	var count = 0;
-	const totalnum = 15;
-	const rightnum = 6;
+	const totalnum = 7;
 
 	class WebVRApp {
 		constructor() {
@@ -92,13 +91,6 @@
 			scene.add(this.createBackground());
 			scene.add(this.createStar());
 
-			this.octaGeo = this.createOcta()
-			scene.add(this.octaGeo);
-			this.lineOcta = this.createOcta();
-			this.lineOcta.scale.set(0.9,0.9,0.9);
-			this.lineOcta.material.wireframe = true;
-			scene.add(this.lineOcta);
-
 			// 创建准心
 			camera.add(this.createCrosshair());
 			// 创建光线
@@ -111,7 +103,7 @@
 
 			this.gazer = new Gazer();
 			this.spherearray = new Array();  
-			for(let k=0; k < 30; k++){        
+			for(let k=0; k < totalnum; k++){        
 			 	this.spherearray[k] = new Array();    
 			}
 
@@ -121,11 +113,11 @@
 				const sphere = this.createSphere();
 				while(true){
 					var x = 80 * Math.random() - 40;
-					var y = 16 * Math.random() - 8;
+					var y = 40 * Math.random();
 					var z = 80 * Math.random() - 40;
 
 					//防止离相机过近
-					if((x < 5 && x > -5) || (y < 5 && y > -5) || (z < 5 && z > -5)){
+					if((x < 15 && x > -15) || (y < 15 && y > -15) || (z < 20 && z > -20)){
 						continue;
 					}else{
 						break;
@@ -133,7 +125,7 @@
 				}
 				
 				sphere.position.set(x, y, z);
-				sphere.material.opacity = 0.6;
+				sphere.material.opacity = 0.4;
 				this.spherearray[i][0] = sphere;
 				this.spherearray[i][1] = false;
 
@@ -150,23 +142,29 @@
 
 				});
 				this.gazer.on(this.spherearray[i][0], 'gazeWait', () => {
-					if(this.spherearray[i][1] == false && i != rightnum){
+					if(this.spherearray[i][1] == false && i == count){
 						this.animate.loader.stop();
-						this.spherearray[i][0].material.opacity = 0;
-						//this.spherearray[i][0].scale.set(0.8,0.8,0.8);
-						//this.spherearray[i][0].material.wireframe = false;
+						this.spherearray[i][0].position.y = -20;
 						this.spherearray[i][1] = true;
-					}else if(this.spherearray[i][1] == false && i == rightnum){
-						this.animate.loader.stop();
-						this.spherearray[i][0].scale.set(1.2,1.2,1.2);
-						for(let j = 0; j < totalnum; j++){
-							if(j != i){
-								this.spherearray[j][0].material.opacity = 0;
-								this.spherearray[j][1] = true;
-							}
+						if(count >= 1){
+							var linegeometry = new THREE.Geometry();
+						    linegeometry.vertices.push(
+						        new THREE.Vector3(this.spherearray[count-1][0].position.x,
+						         this.spherearray[count-1][0].position.y, 
+						         this.spherearray[count-1][0].position.z ),
+						        new THREE.Vector3(this.spherearray[count][0].position.x,
+						         this.spherearray[count][0].position.y,
+						         this.spherearray[count][0].position.z )
+						    );
+						    linegeometry.colors.push(this.spherearray[count-1][0].material.color, 
+						    	this.spherearray[count][0].material.color);
+						     var linematerial = new THREE.LineBasicMaterial({
+						     	vertexColors: true,
+						    });
+						     var line = new THREE.Line( linegeometry, linematerial );
+						     scene.add(line);
 						}
-						this.spherearray[i][1] = true;
-						this.octaGeo.material.opacity = 0;
+						count++;
 					}
 				});
 			}
@@ -198,7 +196,7 @@
 			var geometry  = new THREE.SphereGeometry(80, 50, 50);
 			// create the material, using a texture of mars
 			var material  = new THREE.MeshBasicMaterial();
-			material.map   = THREE.ImageUtils.loadTexture('img/chap2bg.jpg');
+			material.map   = THREE.ImageUtils.loadTexture('img/chap5bg.jpg');
 			material.side  = THREE.BackSide;
 
 			// create the mesh based on geometry and material
